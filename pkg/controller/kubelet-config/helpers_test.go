@@ -435,6 +435,34 @@ func TestSystemGomaxprocsBehaviorEnvFile(t *testing.T) {
 	}
 }
 
+func TestSystemReservedCPUQuantityNormalization(t *testing.T) {
+	for _, tc := range []struct {
+		input    string
+		expected string
+	}{
+		{input: "500u", expected: "1m"},
+		{input: "500n", expected: "1m"},
+		{input: "1500000u", expected: "1500m"},
+	} {
+		t.Run(tc.input, func(t *testing.T) {
+			userConfig, err := EncodeKubeletConfig(&kubeletconfigv1beta1.KubeletConfiguration{
+				SystemReserved: map[string]string{"cpu": tc.input},
+			}, kubeletconfigv1beta1.SchemeGroupVersion, runtime.ContentTypeYAML)
+			require.NoError(t, err)
+
+			kubeletConfig := &mcfgv1.KubeletConfig{Spec: mcfgv1.KubeletConfigSpec{
+				KubeletConfig: &runtime.RawExtension{Raw: userConfig},
+			}}
+			_, _, nodeSizingIgn, _, err := generateKubeletIgnFiles(kubeletConfig, &kubeletconfigv1beta1.KubeletConfiguration{}, "")
+			require.NoError(t, err)
+
+			contents, err := ctrlcommon.DecodeIgnitionFileContents(nodeSizingIgn.Contents.Source, nodeSizingIgn.Contents.Compression)
+			require.NoError(t, err)
+			require.Contains(t, string(contents), "SYSTEM_RESERVED_CPU="+tc.expected)
+		})
+	}
+}
+
 func TestSystemGomaxprocsGenerateKubeletIgnFiles(t *testing.T) {
 	originalKubeConfig := &kubeletconfigv1beta1.KubeletConfiguration{
 		MaxPods: 110,

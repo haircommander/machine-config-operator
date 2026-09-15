@@ -12,6 +12,7 @@ import (
 	osev1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -80,6 +81,17 @@ func createSystemGomaxprocsIgnition(behavior mcfgv1.GomaxprocsBehaviorType) *ign
 
 	r := ctrlcommon.NewIgnFileBytesOverwriting(ctrlcommon.SystemGomaxprocsEnvPath, []byte(fmt.Sprintf("SYSTEM_GOMAXPROCS_BEHAVIOR=%s\n", behavior)))
 	return &r
+}
+
+func normalizeSystemReservedCPU(value string) (string, error) {
+	if value == "" {
+		return value, nil
+	}
+	quantity, err := resource.ParseQuantity(value)
+	if err != nil {
+		return "", fmt.Errorf("invalid systemReserved CPU quantity %q: %w", value, err)
+	}
+	return fmt.Sprintf("%dm", quantity.MilliValue()), nil
 }
 
 func createNewKubeletLogLevelIgnition(level int32) *ign3types.File {
@@ -551,6 +563,10 @@ func generateKubeletIgnFiles(kubeletConfig *mcfgv1.KubeletConfig, originalKubeCo
 		}
 
 		if val, ok := specKubeletConfig.SystemReserved["cpu"]; ok {
+			val, err = normalizeSystemReservedCPU(val)
+			if err != nil {
+				return nil, nil, nil, nil, err
+			}
 			userDefinedSystemReserved["cpu"] = val
 			delete(specKubeletConfig.SystemReserved, "cpu")
 		}
