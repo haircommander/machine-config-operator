@@ -1274,11 +1274,11 @@ func FindClosestFilePolicyPathMatch(diffPath string, filePolicies []opv1.NodeDis
 }
 
 // Extracts the minimum TLS version and cipher suites from apiServer object,
+// defaulting to Modern (TLS 1.3) when no TLSSecurityProfile is set (OCPSTRAT-2994).
+// Clusters upgraded from 5.0.z have Intermediate explicitly set and keep it.
 func GetSecurityProfileCiphersFromAPIServer(apiServer *configv1.APIServer) (string, []string) {
-	// If no apiServer object exists, default to the intermediate profile by calling
-	// GetSecurityProfileCiphers with a nil object for TLSSecurityProfile
-	if apiServer == nil {
-		return GetSecurityProfileCiphers(nil)
+	if apiServer == nil || apiServer.Spec.TLSSecurityProfile == nil {
+		return GetSecurityProfileCiphers(&configv1.TLSSecurityProfile{Type: configv1.TLSProfileModernType})
 	}
 	return GetSecurityProfileCiphers(apiServer.Spec.TLSSecurityProfile)
 }

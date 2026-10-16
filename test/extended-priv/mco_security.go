@@ -562,7 +562,8 @@ var _ = g.Describe("[sig-mco][Suite:openshift/machine-config-operator/longdurati
 				csVersion12 = append(csVersion12, csNameList[i])
 			}
 		}
-		validateCorrectTLSProfileSecurity(oc, "", "VersionTLS12", csVersion12)
+		// OCPSTRAT-2994: unset defaults to Modern (TLS 1.3).
+		validateCorrectTLSProfileSecurity(oc, "", "VersionTLS13", getCipherSuitesNameforSpecificVersion(VersionTLS13))
 		logger.Infof("OK!\n")
 
 		defer func(initialConfig string) {
@@ -651,10 +652,12 @@ var _ = g.Describe("[sig-mco][Suite:openshift/machine-config-operator/longdurati
 				csVersion12 = append(csVersion12, name)
 			}
 		}
-		exutil.By("Verify for Intermediate TLS Profile in kubeletConfig")
-		validateCorrectTLSProfileSecurityInKubeletConfig(node, "VersionTLS12", csVersion12)
-		exutil.By("Verify for Intermediate TLS Profile pod logs")
-		validateCorrectTLSProfileSecurity(oc, "", "VersionTLS12", csVersion12)
+		exutil.By("Verify for Modern TLS Profile in kubeletConfig")
+		// OCPSTRAT-2994: unset defaults to Modern (TLS 1.3).
+		csVersion13 := getCipherSuitesNameforSpecificVersion(VersionTLS13)
+		validateCorrectTLSProfileSecurityInKubeletConfig(node, "VersionTLS13", csVersion13)
+		exutil.By("Verify for Modern TLS Profile pod logs")
+		validateCorrectTLSProfileSecurity(oc, "", "VersionTLS13", csVersion13)
 
 		defer func(initialConfig string) {
 			exutil.By("Restore with previous apiserver value")

@@ -1715,9 +1715,8 @@ func TestKubeletConfigTLSRender(t *testing.T) {
 			// Generate expected profiles from helper function
 			var expectedTLSCipherSuites []string
 			var expectedTLSMinVersion string
-			// Use an intermediate profile for the nil cases
 			if testCase.apiserver == nil || testCase.apiserver.Spec.TLSSecurityProfile == nil {
-				expectedTLSMinVersion, expectedTLSCipherSuites = ctrlcommon.GetSecurityProfileCiphers(&osev1.TLSSecurityProfile{Type: osev1.TLSProfileIntermediateType})
+				expectedTLSMinVersion, expectedTLSCipherSuites = ctrlcommon.GetSecurityProfileCiphers(&osev1.TLSSecurityProfile{Type: osev1.TLSProfileModernType})
 			} else {
 				expectedTLSMinVersion, expectedTLSCipherSuites = ctrlcommon.GetSecurityProfileCiphers(testCase.apiserver.Spec.TLSSecurityProfile)
 			}
